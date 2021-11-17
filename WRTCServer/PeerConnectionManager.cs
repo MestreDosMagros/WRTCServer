@@ -34,10 +34,9 @@ namespace WRTCServer
             }
         };
 
-        //private MediaStreamTrack _audioTrack => new(SDPMediaTypesEnum.audio, false,
-        //      new List<SDPAudioVideoMediaFormat> { new SDPAudioVideoMediaFormat(new AudioFormat(AudioCodecsEnum.OPUS, 111, 48000, 2, "minptime=10;useinbandfec=1;")) }, MediaStreamStatusEnum.SendRecv);
-
-        private MediaStreamTrack _audioTrack => new(new AudioFormat(SDPWellKnownMediaFormatsEnum.PCMU), MediaStreamStatusEnum.SendRecv);
+        private MediaStreamTrack _audioTrack => new(SDPMediaTypesEnum.audio, false,
+              new List<SDPAudioVideoMediaFormat> { new SDPAudioVideoMediaFormat(new AudioFormat(AudioCodecsEnum.OPUS, 111, 48000, 2, "minptime=10;useinbandfec=1;")) }, MediaStreamStatusEnum.SendRecv);
+        //private MediaStreamTrack _audioTrack => new(new AudioFormat(SDPWellKnownMediaFormatsEnum.PCMU), MediaStreamStatusEnum.SendRecv);
         // private MediaStreamTrack _audioTrack => new(new AudioFormat(SDPWellKnownMediaFormatsEnum.G722), MediaStreamStatusEnum.SendRecv);
 
         public PeerConnectionManager(ILogger<PeerConnectionManager> logger)
