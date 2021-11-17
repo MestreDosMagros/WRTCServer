@@ -18,7 +18,9 @@ namespace WRTCServer
 
         private static RTCConfiguration _config = new()
         {
+            iceCandidatePoolSize = 10,
             X_UseRtpFeedbackProfile = true,
+            iceTransportPolicy = RTCIceTransportPolicy.relay,
             iceServers = new List<RTCIceServer>
             {
                 new RTCIceServer
