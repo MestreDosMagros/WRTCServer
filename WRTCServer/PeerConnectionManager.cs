@@ -168,14 +168,13 @@ namespace WRTCServer
                     {
                         foreach (var pc in _peerConnections.Values)
                         {
-                            pc.SendRtpRaw(SDPMediaTypesEnum.audio, pkt.Payload, pkt.Header.Timestamp, pkt.Header.MarkerBit, pkt.Header.PayloadType);
+                            if(media == SDPMediaTypesEnum.audio)
+                            {
+                                pc.SendRtpRaw(SDPMediaTypesEnum.audio, pkt.Payload, pkt.Header.Timestamp, pkt.Header.MarkerBit, pkt.Header.PayloadType);
+                            }
 
-
-                            pc.SendRtcpFeedback(media, new RTCPFeedback(pkt.Payload));
-                            pc.SendRtcpFeedback(media, new RTCPFeedback(pc.AudioRtcpSession.Ssrc, 1, RTCPFeedbackTypesEnum.NACK));
-
-                            //pc.AudioRtcpSession.Ssrc
-                            //pc.AudioRtcpSession.MediaType
+                            //pc.SendRtcpFeedback(media, new RTCPFeedback(pkt.Payload));
+                            //pc.SendRtcpFeedback(media, new RTCPFeedback(pc.AudioRtcpSession.Ssrc, 1, RTCPFeedbackTypesEnum.NACK));
                         }
 
                     }
