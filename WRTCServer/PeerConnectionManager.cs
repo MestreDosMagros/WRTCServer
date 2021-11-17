@@ -34,8 +34,11 @@ namespace WRTCServer
             }
         };
 
-        private MediaStreamTrack _audioTrack => new(SDPMediaTypesEnum.audio, false,
-              new List<SDPAudioVideoMediaFormat> { new SDPAudioVideoMediaFormat(new AudioFormat(AudioCodecsEnum.OPUS, 111, 48000, 2, "minptime=10;useinbandfec=1;")) }, MediaStreamStatusEnum.SendRecv);
+        //private MediaStreamTrack _audioTrack => new(SDPMediaTypesEnum.audio, false,
+        //      new List<SDPAudioVideoMediaFormat> { new SDPAudioVideoMediaFormat(new AudioFormat(AudioCodecsEnum.OPUS, 111, 48000, 2, "minptime=10;useinbandfec=1;")) }, MediaStreamStatusEnum.SendRecv);
+
+        private MediaStreamTrack _audioTrack => new(new AudioFormat(SDPWellKnownMediaFormatsEnum.PCMU), MediaStreamStatusEnum.SendRecv);
+        // private MediaStreamTrack _audioTrack => new(new AudioFormat(SDPWellKnownMediaFormatsEnum.G722), MediaStreamStatusEnum.SendRecv);
 
         public PeerConnectionManager(ILogger<PeerConnectionManager> logger)
         {
@@ -166,15 +169,15 @@ namespace WRTCServer
                         foreach (var pc in _peerConnections.Values)
                         {
                             pc.SendRtpRaw(SDPMediaTypesEnum.audio, pkt.Payload, pkt.Header.Timestamp, pkt.Header.MarkerBit, pkt.Header.PayloadType);
-                            
-                            
+
+
                             pc.SendRtcpFeedback(media, new RTCPFeedback(pkt.Payload));
                             pc.SendRtcpFeedback(media, new RTCPFeedback(pc.AudioRtcpSession.Ssrc, 1, RTCPFeedbackTypesEnum.NACK));
 
                             //pc.AudioRtcpSession.Ssrc
                             //pc.AudioRtcpSession.MediaType
                         }
-                        
+
                     }
                 };
 
@@ -197,7 +200,7 @@ namespace WRTCServer
 
         private void PeerConnection_OnReceiveReport(System.Net.IPEndPoint arg1, SDPMediaTypesEnum arg2, RTCPCompoundPacket arg3)
         {
-            
+
         }
 
         public RTCPeerConnection Get(string id)
