@@ -6,7 +6,7 @@ namespace WRTCServer.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class WebRTCController : Controller
+    public class WebRTCController : ControllerBase
     {
         private readonly IPeerConnectionManager _peerConnectionManager;
 
@@ -27,7 +27,6 @@ namespace WRTCServer.Controllers
         public IActionResult SetRemoteDescription([FromRoute] string id, [FromBody] RTCSessionDescriptionInit rtcSessionDescriptionInit)
         {
             _peerConnectionManager.SetRemoteDescription(id, rtcSessionDescriptionInit);
-            //return Ok(_peerConnectionManager.Get(id));
             return Ok();
         }
 
@@ -35,7 +34,6 @@ namespace WRTCServer.Controllers
         public IActionResult AddIceCandidate([FromRoute] string id, [FromBody] RTCIceCandidateInit iceCandidate)
         {
             _peerConnectionManager.AddIceCandidate(id, iceCandidate);
-            //return Ok(_peerConnectionManager.Get(id));
             return Ok();
         }
 
@@ -43,7 +41,6 @@ namespace WRTCServer.Controllers
         public IActionResult GetIceResults([FromRoute] string id)
         {
             _peerConnectionManager.GetIceResults(id);
-            //return Ok(_peerConnectionManager.Get(id));
             return Ok();
         }
     }
