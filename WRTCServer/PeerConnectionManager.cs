@@ -143,7 +143,7 @@ namespace WRTCServer
                 peerConnection.OnReceiveReport += (System.Net.IPEndPoint arg1, SDPMediaTypesEnum arg2, RTCPCompoundPacket arg3) =>
                 {
 
-                    _logger.LogInformation($"RTCP Send for {arg2}\n{arg3.GetDebugSummary()}");
+                    _logger.LogInformation($"RTCP Receive for {arg2}\n{arg3.GetDebugSummary()}");
                     //if (arg3.ReceiverReport != null)
                     //{
                     //    _logger.LogInformation("{JITTER RECEIVE}");
