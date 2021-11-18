@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WRTCServer
@@ -18,9 +19,7 @@ namespace WRTCServer
 
         private static RTCConfiguration _config = new()
         {
-            iceCandidatePoolSize = 10,
             X_UseRtpFeedbackProfile = true,
-            iceTransportPolicy = RTCIceTransportPolicy.relay,
             iceServers = new List<RTCIceServer>
             {
                 new RTCIceServer
@@ -164,6 +163,8 @@ namespace WRTCServer
                 {
                     _logger.LogInformation("{OnRtpPacketReceived}");
 
+                    Thread.Sleep(10);
+
                     if (media == SDPMediaTypesEnum.audio)
                     {
                         foreach (var pc in _peerConnections.Values)
@@ -172,11 +173,7 @@ namespace WRTCServer
                             {
                                 pc.SendRtpRaw(SDPMediaTypesEnum.audio, pkt.Payload, pkt.Header.Timestamp, pkt.Header.MarkerBit, pkt.Header.PayloadType);
                             }
-
-                            //pc.SendRtcpFeedback(media, new RTCPFeedback(pkt.Payload));
-                            //pc.SendRtcpFeedback(media, new RTCPFeedback(pc.AudioRtcpSession.Ssrc, 1, RTCPFeedbackTypesEnum.NACK));
                         }
-
                     }
                 };
 
