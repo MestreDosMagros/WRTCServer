@@ -120,46 +120,72 @@ namespace WRTCServer
 
                 peerConnection.OnSendReport += (media, sr) =>
                 {
-                    _logger.LogInformation($"RTCP Send for {media}\n{sr.GetDebugSummary()}");
+                    _logger.LogInformation("{OnSendReport}");
 
-                    //if (sr.SenderReport != null)
-                    //{
-                    //    _logger.LogInformation("{JITTER SEND}");
+                    if (sr.SenderReport != null)
+                    {
+                        var log = string.Empty;
 
-                    //    sr.SenderReport.ReceptionReports.ForEach(a =>
-                    //    {
-                    //        _logger.LogInformation(a?.Jitter.ToString());
-                    //    });
+                        log = string.Concat(log,
+                            $@"REPORT SEND FOR: {Enum.GetName(typeof(SDPMediaTypesEnum), media)}");
 
-                    //    sr.SenderReport.ReceptionReports.ForEach(a =>
-                    //    {
-                    //        _logger.LogInformation(a?.Jitter.ToString());
-                    //    });
+                        log = string.Concat(log,
+                            @$"
+                            FEEDBACKMESSAGETYPE: {Enum.GetName(typeof(RTCPFeedbackTypesEnum), sr.SenderReport.Header.FeedbackMessageType)}
+                            PAYLOADFEEDBACKMESSAGETYPE: {Enum.GetName(typeof(PSFBFeedbackTypesEnum), sr.SenderReport.Header.PayloadFeedbackMessageType)}
+                            PACKETTYPE: {Enum.GetName(typeof(RTCPReportTypesEnum), sr.SenderReport.Header.PacketType)}");
 
-                    //    _logger.LogInformation("{OnSendReport}");
-                    //}     
+                        sr.SenderReport.ReceptionReports.ForEach(a =>
+                        {
+                            log = string.Concat(log, 
+                                @$"
+                                SSRC: {a.SSRC}
+                                JITTER: {a.Jitter} 
+                                FRACTIONLOST: {a.FractionLost}
+                                PACKETSLOST: {a.PacketsLost}
+                                LASTSENDERREPORTTIMESTAMP: {a.LastSenderReportTimestamp}
+                                DELAYSINCELASTSENDERREPORT: {a.DelaySinceLastSenderReport}
+                                EXTENDEDHIGHESTSEQUENCENUMBER: {a.ExtendedHighestSequenceNumber}");
+
+                        });                        
+
+                        _logger.LogInformation(log);
+                    }
                 };
 
-                peerConnection.OnReceiveReport += (System.Net.IPEndPoint arg1, SDPMediaTypesEnum arg2, RTCPCompoundPacket arg3) =>
+                peerConnection.OnReceiveReport += (System.Net.IPEndPoint arg1, SDPMediaTypesEnum media, RTCPCompoundPacket sr) =>
                 {
+                    _logger.LogInformation("{OnReceiveReport}");
 
-                    _logger.LogInformation($"RTCP Receive for {arg2}\n{arg3.GetDebugSummary()}");
-                    //if (arg3.ReceiverReport != null)
-                    //{
-                    //    _logger.LogInformation("{JITTER RECEIVE}");
+                    if (sr.ReceiverReport != null)
+                    {
+                        var log = string.Empty;
 
-                    //    arg3.ReceiverReport.ReceptionReports.ForEach(a =>
-                    //    {
-                    //        _logger.LogInformation(a?.Jitter.ToString());
-                    //    });
+                        log = string.Concat(log,
+                            $@"REPORT SEND FOR: {Enum.GetName(typeof(SDPMediaTypesEnum), media)}");
 
-                    //    arg3.ReceiverReport.ReceptionReports.ForEach(a =>
-                    //    {
-                    //        _logger.LogInformation(a?.Jitter.ToString());
-                    //    });
+                        log = string.Concat(log,
+                            @$"
+                            FEEDBACKMESSAGETYPE: {Enum.GetName(typeof(RTCPFeedbackTypesEnum), sr.SenderReport.Header.FeedbackMessageType)}
+                            PAYLOADFEEDBACKMESSAGETYPE: {Enum.GetName(typeof(PSFBFeedbackTypesEnum), sr.SenderReport.Header.PayloadFeedbackMessageType)}
+                            PACKETTYPE: {Enum.GetName(typeof(RTCPReportTypesEnum), sr.SenderReport.Header.PacketType)}");
 
-                    //    _logger.LogInformation("{OnReceiveReport}");
-                    //} 
+
+                        sr.ReceiverReport.ReceptionReports.ForEach(a =>
+                        {
+                            log = string.Concat(log,
+                                @$"
+                                SSRC: {a.SSRC}
+                                JITTER: {a.Jitter} 
+                                FRACTIONLOST: {a.FractionLost}
+                                PACKETSLOST: {a.PacketsLost}
+                                LASTSENDERREPORTTIMESTAMP: {a.LastSenderReportTimestamp}
+                                DELAYSINCELASTSENDERREPORT: {a.DelaySinceLastSenderReport}
+                                EXTENDEDHIGHESTSEQUENCENUMBER: {a.ExtendedHighestSequenceNumber}");
+                        });
+
+                        _logger.LogInformation(log);
+                    }
                 };
 
                 peerConnection.OnRtcpBye += (reason) =>
@@ -199,7 +225,7 @@ namespace WRTCServer
                     {
                         foreach (var pc in _peerConnections.Values)
                         {
-                            if(media == SDPMediaTypesEnum.audio)
+                            if (media == SDPMediaTypesEnum.audio)
                             {
                                 pc.SendRtpRaw(SDPMediaTypesEnum.audio, pkt.Payload, pkt.Header.Timestamp, pkt.Header.MarkerBit, pkt.Header.PayloadType);
                             }
