@@ -120,36 +120,46 @@ namespace WRTCServer
 
                 peerConnection.OnSendReport += (media, sr) =>
                 {
-                    _logger.LogInformation("{JITTER SEND}");
+                    _logger.LogInformation($"RTCP Send for {media}\n{sr.GetDebugSummary()}");
 
-                    sr.SenderReport.ReceptionReports.ForEach(a =>
-                    {
-                        _logger.LogInformation(a.Jitter.ToString());
-                    });
+                    //if (sr.SenderReport != null)
+                    //{
+                    //    _logger.LogInformation("{JITTER SEND}");
 
-                    sr.ReceiverReport.ReceptionReports.ForEach(a =>
-                    {
-                        _logger.LogInformation(a.Jitter.ToString());
-                    });
+                    //    sr.SenderReport.ReceptionReports.ForEach(a =>
+                    //    {
+                    //        _logger.LogInformation(a?.Jitter.ToString());
+                    //    });
 
-                    _logger.LogInformation("{OnSendReport}");
+                    //    sr.SenderReport.ReceptionReports.ForEach(a =>
+                    //    {
+                    //        _logger.LogInformation(a?.Jitter.ToString());
+                    //    });
+
+                    //    _logger.LogInformation("{OnSendReport}");
+                    //}     
                 };
 
                 peerConnection.OnReceiveReport += (System.Net.IPEndPoint arg1, SDPMediaTypesEnum arg2, RTCPCompoundPacket arg3) =>
                 {
-                    _logger.LogInformation("{JITTER RECEIVE}");
-                    
-                    arg3.SenderReport.ReceptionReports.ForEach(a =>
-                    {
-                        _logger.LogInformation(a.Jitter.ToString());
-                    });
 
-                    arg3.ReceiverReport.ReceptionReports.ForEach(a =>
-                    {
-                        _logger.LogInformation(a.Jitter.ToString());
-                    });
+                    _logger.LogInformation($"RTCP Send for {arg2}\n{arg3.GetDebugSummary()}");
+                    //if (arg3.ReceiverReport != null)
+                    //{
+                    //    _logger.LogInformation("{JITTER RECEIVE}");
 
-                    _logger.LogInformation("{OnReceiveReport}");
+                    //    arg3.ReceiverReport.ReceptionReports.ForEach(a =>
+                    //    {
+                    //        _logger.LogInformation(a?.Jitter.ToString());
+                    //    });
+
+                    //    arg3.ReceiverReport.ReceptionReports.ForEach(a =>
+                    //    {
+                    //        _logger.LogInformation(a?.Jitter.ToString());
+                    //    });
+
+                    //    _logger.LogInformation("{OnReceiveReport}");
+                    //} 
                 };
 
                 peerConnection.OnRtcpBye += (reason) =>
@@ -185,10 +195,6 @@ namespace WRTCServer
 
                 peerConnection.OnRtpPacketReceived += (rep, media, pkt) =>
                 {
-                    _logger.LogInformation("{OnRtpPacketReceived}");
-
-                    Thread.Sleep(10);
-
                     if (media == SDPMediaTypesEnum.audio)
                     {
                         foreach (var pc in _peerConnections.Values)
