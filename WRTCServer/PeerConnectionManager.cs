@@ -120,6 +120,16 @@ namespace WRTCServer
 
                 peerConnection.OnSendReport += (media, sr) =>
                 {
+                    sr.SenderReport.ReceptionReports.ForEach(a =>
+                    {
+                        _logger.LogInformation(a.Jitter.ToString());
+                    });
+
+                    sr.ReceiverReport.ReceptionReports.ForEach(a =>
+                    {
+                        _logger.LogInformation(a.Jitter.ToString());
+                    });
+
                     _logger.LogInformation("{OnSendReport}");
                 };
 
