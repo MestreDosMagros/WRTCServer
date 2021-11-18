@@ -125,6 +125,18 @@ namespace WRTCServer
 
                 peerConnection.OnReceiveReport += (System.Net.IPEndPoint arg1, SDPMediaTypesEnum arg2, RTCPCompoundPacket arg3) =>
                 {
+                    _logger.LogInformation("{JITTER}");
+                    
+                    arg3.SenderReport.ReceptionReports.ForEach(a =>
+                    {
+                        _logger.LogInformation(a.Jitter.ToString());
+                    });
+
+                    arg3.ReceiverReport.ReceptionReports.ForEach(a =>
+                    {
+                        _logger.LogInformation(a.Jitter.ToString());
+                    });
+
                     _logger.LogInformation("{OnReceiveReport}");
                 };
 
