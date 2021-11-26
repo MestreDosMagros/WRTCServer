@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace WRTCServer
@@ -14,6 +13,9 @@ namespace WRTCServer
     {
         private readonly ILogger<PeerConnectionManager> _logger;
 
+        private System.Timers.Timer _timer;
+
+        private Dictionary<string, bool> _audioSet;
         private ConcurrentDictionary<string, List<RTCIceCandidate>> _candidates;
         private ConcurrentDictionary<string, RTCPeerConnection> _peerConnections;
 
@@ -37,17 +39,55 @@ namespace WRTCServer
         };
 
         private MediaStreamTrack _audioTrack => new(SDPMediaTypesEnum.audio, false,
-              new List<SDPAudioVideoMediaFormat> { new SDPAudioVideoMediaFormat(new AudioFormat(AudioCodecsEnum.OPUS, 111, 48000, 2, "minptime=10;useinbandfec=1;")) }, MediaStreamStatusEnum.SendRecv);
+              new List<SDPAudioVideoMediaFormat> { new SDPAudioVideoMediaFormat(new AudioFormat(AudioCodecsEnum.OPUS, 111, 48000, 2, "minptime=10;maxptime=50;useinbandfec=1;")) }, MediaStreamStatusEnum.SendRecv)
+        {
+            //SdpSsrc = new Dictionary<uint, SDPSsrcAttribute>() { { 99, new SDPSsrcAttribute(99, "default") }
+        };
 
         public PeerConnectionManager(ILogger<PeerConnectionManager> logger)
         {
             _logger = logger;
 
+            _audioSet = new Dictionary<string, bool>();
             _candidates ??= new ConcurrentDictionary<string, List<RTCIceCandidate>>();
             _peerConnections ??= new ConcurrentDictionary<string, RTCPeerConnection>();
+
+            _timer = new System.Timers.Timer(TimeSpan.FromSeconds(15).TotalMilliseconds);
+            _timer.Elapsed += SetAudioMuted;
+            _timer.Start();
         }
 
-        public async Task<RTCSessionDescriptionInit> CreateServerOffer(string id)
+        // BAGACEI
+        private void SetAudioMuted(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            var rnd = new Random();
+            try
+            {
+                if(_audioSet.Any())
+                {
+                    string unmutedKey = string.Empty;
+                    if (_audioSet.Any(s => s.Value == false))
+                    {
+                        unmutedKey = _audioSet.Where(s => s.Value == false).Single().Key;
+                        _audioSet[unmutedKey] = true;
+                    }
+
+                    var keys = _audioSet.Keys.Where(k => k != unmutedKey).ToArray();
+                    _audioSet[keys[rnd.Next(0, keys.Length)]] = false;
+                }
+
+                _audioSet.ToList().ForEach(x =>
+                {
+                    _logger.LogInformation($"{x.Key} {x.Value}");
+                });
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public async Task<(RTCSessionDescriptionInit, string)> CreateServerOffer()
         {
             try
             {
@@ -121,71 +161,11 @@ namespace WRTCServer
                 peerConnection.OnSendReport += (media, sr) =>
                 {
                     _logger.LogInformation("{OnSendReport}");
-
-                    if (sr.SenderReport != null)
-                    {
-                        var log = string.Empty;
-
-                        log = string.Concat(log,
-                            $@"REPORT SEND FOR: {Enum.GetName(typeof(SDPMediaTypesEnum), media)}");
-
-                        log = string.Concat(log,
-                            @$"
-                            FEEDBACKMESSAGETYPE: {Enum.GetName(typeof(RTCPFeedbackTypesEnum), sr.SenderReport.Header.FeedbackMessageType)}
-                            PAYLOADFEEDBACKMESSAGETYPE: {Enum.GetName(typeof(PSFBFeedbackTypesEnum), sr.SenderReport.Header.PayloadFeedbackMessageType)}
-                            PACKETTYPE: {Enum.GetName(typeof(RTCPReportTypesEnum), sr.SenderReport.Header.PacketType)}");
-
-                        sr.SenderReport.ReceptionReports.ForEach(a =>
-                        {
-                            log = string.Concat(log, 
-                                @$"
-                                SSRC: {a.SSRC}
-                                JITTER: {a.Jitter} 
-                                FRACTIONLOST: {a.FractionLost}
-                                PACKETSLOST: {a.PacketsLost}
-                                LASTSENDERREPORTTIMESTAMP: {a.LastSenderReportTimestamp}
-                                DELAYSINCELASTSENDERREPORT: {a.DelaySinceLastSenderReport}
-                                EXTENDEDHIGHESTSEQUENCENUMBER: {a.ExtendedHighestSequenceNumber}");
-
-                        });                        
-
-                        _logger.LogInformation(log);
-                    }
                 };
 
-                peerConnection.OnReceiveReport += (System.Net.IPEndPoint arg1, SDPMediaTypesEnum media, RTCPCompoundPacket sr) =>
+                peerConnection.OnReceiveReport += (arg1, media, sr) =>
                 {
                     _logger.LogInformation("{OnReceiveReport}");
-
-                    if (sr.ReceiverReport != null)
-                    {
-                        var log = string.Empty;
-
-                        log = string.Concat(log,
-                            $@"REPORT SEND FOR: {Enum.GetName(typeof(SDPMediaTypesEnum), media)}");
-
-                        log = string.Concat(log,
-                            @$"
-                            FEEDBACKMESSAGETYPE: {Enum.GetName(typeof(RTCPFeedbackTypesEnum), sr.SenderReport.Header.FeedbackMessageType)}
-                            PAYLOADFEEDBACKMESSAGETYPE: {Enum.GetName(typeof(PSFBFeedbackTypesEnum), sr.SenderReport.Header.PayloadFeedbackMessageType)}
-                            PACKETTYPE: {Enum.GetName(typeof(RTCPReportTypesEnum), sr.SenderReport.Header.PacketType)}");
-
-
-                        sr.ReceiverReport.ReceptionReports.ForEach(a =>
-                        {
-                            log = string.Concat(log,
-                                @$"
-                                SSRC: {a.SSRC}
-                                JITTER: {a.Jitter} 
-                                FRACTIONLOST: {a.FractionLost}
-                                PACKETSLOST: {a.PacketsLost}
-                                LASTSENDERREPORTTIMESTAMP: {a.LastSenderReportTimestamp}
-                                DELAYSINCELASTSENDERREPORT: {a.DelaySinceLastSenderReport}
-                                EXTENDEDHIGHESTSEQUENCENUMBER: {a.ExtendedHighestSequenceNumber}");
-                        });
-
-                        _logger.LogInformation(log);
-                    }
                 };
 
                 peerConnection.OnRtcpBye += (reason) =>
@@ -197,9 +177,9 @@ namespace WRTCServer
                 {
                     if (peerConnection.signalingState == RTCSignalingState.have_local_offer || peerConnection.signalingState == RTCSignalingState.have_remote_offer)
                     {
-                        var candidatesList = _candidates.Where(x => x.Key == id).SingleOrDefault();
+                        var candidatesList = _candidates.Where(x => x.Key == peerConnection.SessionID).SingleOrDefault();
                         if (candidatesList.Value is null)
-                            _candidates.TryAdd(id, new List<RTCIceCandidate> { candidate });
+                            _candidates.TryAdd(peerConnection.SessionID, new List<RTCIceCandidate> { candidate });
                         else
                             candidatesList.Value.Add(candidate);
                     }
@@ -211,7 +191,7 @@ namespace WRTCServer
                     if (state == RTCPeerConnectionState.closed || state == RTCPeerConnectionState.disconnected || state == RTCPeerConnectionState.failed)
                     {
                         _logger.LogInformation("Peer connection failed | closed | disconected");
-                        _peerConnections.TryRemove(id, out _);
+                        _peerConnections.TryRemove(peerConnection.SessionID, out _);
                     }
                     else if (state == RTCPeerConnectionState.connected)
                     {
@@ -223,9 +203,10 @@ namespace WRTCServer
                 {
                     if (media == SDPMediaTypesEnum.audio)
                     {
-                        foreach (var pc in _peerConnections.Values)
+                        var conns = _peerConnections.Where(p => p.Key != peerConnection.SessionID).Select(s => s.Value);
+                        foreach (var pc in conns)
                         {
-                            if (media == SDPMediaTypesEnum.audio)
+                            if (media == SDPMediaTypesEnum.audio && _audioSet[pc.SessionID] == false)
                             {
                                 pc.SendRtpRaw(SDPMediaTypesEnum.audio, pkt.Payload, pkt.Header.Timestamp, pkt.Header.MarkerBit, pkt.Header.PayloadType);
                             }
@@ -239,9 +220,10 @@ namespace WRTCServer
 
                 await peerConnection.setLocalDescription(offerSdp);
 
-                _peerConnections.TryAdd(id, peerConnection);
+                _audioSet.Add(peerConnection.SessionID, true);
+                _peerConnections.TryAdd(peerConnection.SessionID, peerConnection);
 
-                return offerSdp;
+                return (offerSdp, peerConnection.SessionID);
             }
             catch (Exception ex)
             {

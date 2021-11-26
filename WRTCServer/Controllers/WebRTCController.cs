@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SIPSorcery.Net;
 using System;
+using System.Threading.Tasks;
 
 namespace WRTCServer.Controllers
 {
@@ -16,10 +17,10 @@ namespace WRTCServer.Controllers
         }
 
         [HttpGet, Route("get_offer")]
-        public IActionResult GetOffer()
+        public async Task<IActionResult> GetOffer()
         {
-            var id = Guid.NewGuid().ToString();
-            return Ok(new { id, offer = _peerConnectionManager.CreateServerOffer(id) });
+            var (offer, id) = await _peerConnectionManager.CreateServerOffer();
+            return Ok(new { id, offer });
         }
 
 

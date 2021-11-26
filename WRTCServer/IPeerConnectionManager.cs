@@ -8,7 +8,7 @@ namespace WRTCServer
     {
         RTCPeerConnection Get(string id);
         List<RTCIceCandidate> GetIceResults(string id);
-        Task<RTCSessionDescriptionInit> CreateServerOffer(string id);
+        Task<(RTCSessionDescriptionInit, string)> CreateServerOffer();
         void AddIceCandidate(string id, RTCIceCandidateInit iceCandidate);
         void SetRemoteDescription(string id, RTCSessionDescriptionInit rtcSessionDescriptionInit);
     }
