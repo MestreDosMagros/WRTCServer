@@ -50,7 +50,7 @@ namespace WRTCServer
             _peerConnections ??= new ConcurrentDictionary<string, RTCPeerConnection>();
         }
 
-        public async Task<(RTCSessionDescriptionInit, string)> CreateServerOffer()
+        public async Task<(RTCSessionDescription, string)> CreateServerOffer()
         {
             try
             {
@@ -125,14 +125,11 @@ namespace WRTCServer
 
                 peerConnection.onicecandidate += (candidate) =>
                 {
-                    if (peerConnection.signalingState == RTCSignalingState.have_local_offer || peerConnection.signalingState == RTCSignalingState.have_remote_offer)
-                    {
-                        var candidatesList = _candidates.Where(x => x.Key == peerConnection.SessionID).SingleOrDefault();
-                        if (candidatesList.Value is null)
-                            _candidates.TryAdd(peerConnection.SessionID, new List<RTCIceCandidate> { candidate });
-                        else
-                            candidatesList.Value.Add(candidate);
-                    }
+                    var candidatesList = _candidates.Where(x => x.Key == peerConnection.SessionID).SingleOrDefault();
+                    if (candidatesList.Value is null)
+                        _candidates.TryAdd(peerConnection.SessionID, new List<RTCIceCandidate> { candidate });
+                    else
+                        candidatesList.Value.Add(candidate);
                 };
 
                 peerConnection.onconnectionstatechange += (state) =>
@@ -210,7 +207,7 @@ namespace WRTCServer
                     {
                         _logger.LogError("Invalid message received on data channel: {0}", dataChannel.label);
                     }
-                };
+                };               
 
                 var offerSdp = peerConnection.createOffer(null);
 
@@ -220,7 +217,12 @@ namespace WRTCServer
 
                 SendMessageToChannels(EMessageType.ConnectedUsers);
 
-                return (offerSdp, peerConnection.SessionID);
+                while (peerConnection.iceGatheringState != RTCIceGatheringState.complete)
+                {
+                    Task.Delay(100).GetAwaiter().GetResult();
+                }
+
+                return (peerConnection.localDescription, peerConnection.SessionID);
             }
             catch (Exception ex)
             {
