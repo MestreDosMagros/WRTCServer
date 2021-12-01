@@ -146,7 +146,6 @@ namespace WRTCServer
                     else if (state == RTCPeerConnectionState.connected)
                     {
                         _logger.LogInformation("Peer connection connected");
-                        peerConnection.DataChannels[0].send(GetDataChannelMessage(EMessageType.Wellcome));
                     }
                 };
 
@@ -170,6 +169,7 @@ namespace WRTCServer
                 dataChannel.onopen += () =>
                 {
                     _logger.LogInformation("datachannel.onopen");
+                    dataChannel.send(GetDataChannelMessage(EMessageType.Wellcome));
                 };
 
                 dataChannel.onclose += () =>
