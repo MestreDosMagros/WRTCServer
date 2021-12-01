@@ -87,7 +87,7 @@ namespace WRTCServer
                             var (msgType, msg) = ReadDataChannelMessage(Encoding.UTF8.GetString(data));
 
                             _logger.LogInformation("datachannel.onmessage: {0}", msg);
-                            
+
                             if (msgType == EMessageType.Hello)
                                 _connectedUsers.Add(msg);
 
@@ -225,7 +225,8 @@ namespace WRTCServer
                 _logger.LogError(ex.ToString());
                 throw;
             }
-        }       
+        }
+
         public RTCPeerConnection Get(string id)
         {
             try
@@ -322,6 +323,9 @@ namespace WRTCServer
             return (type, splited[1]);
         }
 
+        /// <summary>
+        ///     Gets the string message from datachannel received message
+        /// </summary>
         private byte[] GetDataChannelMessageBytes(EMessageType messageType, string[] args = null)
         {
             return messageType switch
