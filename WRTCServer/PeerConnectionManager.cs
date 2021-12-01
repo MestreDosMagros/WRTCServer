@@ -60,60 +60,17 @@ namespace WRTCServer
 
                 peerConnection.OnAudioFormatsNegotiated += (audioFormats) =>
                 {
-                    _logger.LogInformation("{OnAudioFormatsNegotiated}");
+                    _logger.LogInformation("OnAudioFormatsNegotiated");
                 };
 
                 peerConnection.OnTimeout += (mediaType) =>
                 {
-                    _logger.LogWarning("{OnTimeout}");
+                    _logger.LogWarning("OnTimeout");
                 };
 
                 peerConnection.ondatachannel += (rdc) =>
                 {
-                    rdc.onopen += () =>
-                    {
-                        _logger.LogInformation("datachannel.onopen");
-                    };
-
-                    rdc.onclose += () =>
-                    {
-                        _logger.LogInformation("datachannel.onclose");
-                    };
-
-                    rdc.onmessage += (datachan, type, data) =>
-                    {
-                        try
-                        {
-                            var (msgType, msg) = ReadDataChannelMessage(Encoding.UTF8.GetString(data));
-
-                            _logger.LogInformation("datachannel.onmessage: {0}", msg);
-
-                            if (msgType == EMessageType.Hello)
-                                _connectedUsers.Add(msg);
-
-                            if (msgType == EMessageType.SpeakRequestFinish)
-                            {
-                                lock (_lock) _speakFree = true;
-                                SendMessageToChannels(EMessageType.SuccessFeedback);
-                            }
-
-                            if (msgType == EMessageType.SpeakRequestInit)
-                            {
-                                if (_speakFree)
-                                {
-                                    lock (_lock) _speakFree = false;
-                                    SendMessageToChannels(EMessageType.SuccessFeedback);
-                                    SendMessageToChannels(EMessageType.Speaking, new string[] { msg });
-                                }
-                                else
-                                    SendMessageToChannels(EMessageType.ErrorFeedback);
-                            }
-                        }
-                        catch
-                        {
-                            _logger.LogError("Invalid message received on data channel: {0}", rdc.label);
-                        }
-                    };
+                    _logger.LogInformation("ondatachannel");
                 };
 
                 peerConnection.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) =>
@@ -189,7 +146,7 @@ namespace WRTCServer
                     else if (state == RTCPeerConnectionState.connected)
                     {
                         _logger.LogInformation("Peer connection connected");
-                        peerConnection.DataChannels[0].send(GetDataChannelMessageBytes(EMessageType.Wellcome));
+                        peerConnection.DataChannels[0].send(GetDataChannelMessage(EMessageType.Wellcome));
                     }
                 };
 
@@ -208,7 +165,52 @@ namespace WRTCServer
                     }
                 };
 
-                await peerConnection.createDataChannel("channel");
+                var dataChannel = await peerConnection.createDataChannel("channel");
+
+                dataChannel.onopen += () =>
+                {
+                    _logger.LogInformation("datachannel.onopen");
+                };
+
+                dataChannel.onclose += () =>
+                {
+                    _logger.LogInformation("datachannel.onclose");
+                };
+
+                dataChannel.onmessage += (datachan, type, data) =>
+                {
+                    try
+                    {
+                        var (msgType, msg) = ReadDataChannelMessage(Encoding.UTF8.GetString(data));
+
+                        _logger.LogInformation("datachannel.onmessage: {0}", msg);
+
+                        if (msgType == EMessageType.Hello)
+                            _connectedUsers.Add(msg);
+
+                        if (msgType == EMessageType.SpeakRequestFinish)
+                        {
+                            lock (_lock) _speakFree = true;
+                            SendMessageToChannels(EMessageType.SuccessFeedback);
+                        }
+
+                        if (msgType == EMessageType.SpeakRequestInit)
+                        {
+                            if (_speakFree)
+                            {
+                                lock (_lock) _speakFree = false;
+                                SendMessageToChannels(EMessageType.SuccessFeedback);
+                                SendMessageToChannels(EMessageType.Speaking, new string[] { msg });
+                            }
+                            else
+                                SendMessageToChannels(EMessageType.ErrorFeedback);
+                        }
+                    }
+                    catch
+                    {
+                        _logger.LogError("Invalid message received on data channel: {0}", dataChannel.label);
+                    }
+                };
 
                 var offerSdp = peerConnection.createOffer(null);
 
@@ -303,7 +305,7 @@ namespace WRTCServer
         {
             foreach (var conn in _peerConnections.Values)
             {
-                conn.DataChannels[0]?.send(GetDataChannelMessageBytes(eMessageType, args));
+                conn.DataChannels[0]?.send(GetDataChannelMessage(eMessageType, args));
             }
         }
 
@@ -326,15 +328,15 @@ namespace WRTCServer
         /// <summary>
         ///     Gets the string message from datachannel received message
         /// </summary>
-        private byte[] GetDataChannelMessageBytes(EMessageType messageType, string[] args = null)
+        private string GetDataChannelMessage(EMessageType messageType, string[] args = null)
         {
             return messageType switch
             {
-                EMessageType.Wellcome => Encoding.UTF8.GetBytes("welcome|Remotatec PS"),
-                EMessageType.ConnectedUsers => Encoding.UTF8.GetBytes($"connected_users|{string.Join(",", _connectedUsers)}"),
-                EMessageType.Speaking => Encoding.UTF8.GetBytes($"speaking|{args?[0]}"),
-                EMessageType.SuccessFeedback => Encoding.UTF8.GetBytes("ok"),
-                EMessageType.ErrorFeedback => Encoding.UTF8.GetBytes("nok"),
+                EMessageType.Wellcome => "welcome|Remotatec PS",
+                EMessageType.ConnectedUsers => $"connected_users|{string.Join(",", _connectedUsers)}",
+                EMessageType.Speaking => $"speaking|{args?[0]}",
+                EMessageType.SuccessFeedback => "ok",
+                EMessageType.ErrorFeedback => "nok",
                 _ => throw new NotImplementedException()
             };
         }
