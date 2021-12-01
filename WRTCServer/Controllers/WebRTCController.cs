@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SIPSorcery.Net;
-using System;
 using System.Threading.Tasks;
 
 namespace WRTCServer.Controllers
