@@ -19,7 +19,7 @@ namespace WRTCServer.Controllers
         public async Task<IActionResult> GetOffer()
         {
             var (offer, id) = await _peerConnectionManager.CreateServerOffer();
-            return Ok(new { id, offer });
+            return Ok(new { id, offer = offer.sdp.ToString() });
         }
 
 
