@@ -190,7 +190,7 @@ namespace WRTCServer
                         {
                             _connectedUsers.Add(msg);
                             dataChannel.send(GetDataChannelMessage(EMessageType.ConnectedUsers));
-                            if (_speakFree.Item1)
+                            if (!_speakFree.Item1)
                             {
                                 dataChannel.send(GetDataChannelMessage(EMessageType.Speaking, new string[] { _speakFree.Item2 }));
                             }
@@ -235,7 +235,7 @@ namespace WRTCServer
                 offerSdp.sdp = offerSdp.sdp.Replace("172.31.14.159", "18.228.196.245");
                 //offerSdp.sdp = offerSdp.sdp.Replace("192.168.10.13", "181.223.40.208");
 
-                var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
+                //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
                 //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("192.168.10.13"));
 
                 await peerConnection.setLocalDescription(offerSdp);
