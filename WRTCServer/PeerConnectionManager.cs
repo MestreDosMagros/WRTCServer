@@ -183,12 +183,16 @@ namespace WRTCServer
                         _logger.LogInformation("datachannel.onmessage: {0}", msg);
 
                         if (msgType == EMessageType.Hello)
+                        {
                             _connectedUsers.Add(msg);
+                            dataChannel.send(GetDataChannelMessage(EMessageType.ConnectedUsers));
+                            if (_speakFree) dataChannel.send(GetDataChannelMessage(EMessageType.Speaking));
+                        }
 
                         if (msgType == EMessageType.SpeakRequestFinish)
                         {
                             lock (_lock) _speakFree = true;
-                            SendMessageToChannels(EMessageType.SuccessFeedback);
+                            SendMessageToChannels(EMessageType.SuccessFeedback, new string[] { "speak_request_finish" });
                         }
 
                         if (msgType == EMessageType.SpeakRequestInit)
@@ -196,11 +200,11 @@ namespace WRTCServer
                             if (_speakFree)
                             {
                                 lock (_lock) _speakFree = false;
-                                SendMessageToChannels(EMessageType.SuccessFeedback);
+                                SendMessageToChannels(EMessageType.SuccessFeedback, new string[] { "speak_request_init" });
                                 SendMessageToChannels(EMessageType.Speaking, new string[] { msg });
                             }
                             else
-                                SendMessageToChannels(EMessageType.ErrorFeedback);
+                                SendMessageToChannels(EMessageType.ErrorFeedback, new string[] { "speak_request_init" });
                         }
                     }
                     catch
@@ -214,15 +218,12 @@ namespace WRTCServer
                 offerSdp.sdp = offerSdp.sdp.Replace("172.31.14.159", "18.228.196.245");
                 //offerSdp.sdp = offerSdp.sdp.Replace("192.168.10.13", "181.223.40.208");
 
-                //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
+                var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
                 //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("192.168.10.13"));
 
-                //await peerConnection.setLocalDescription(offerSdp);
                 await peerConnection.setLocalDescription(offerSdp);
 
                 _peerConnections.TryAdd(peerConnection.SessionID, peerConnection);
-
-                SendMessageToChannels(EMessageType.ConnectedUsers);
 
                 while (peerConnection.iceGatheringState != RTCIceGatheringState.complete)
                 {
@@ -344,8 +345,8 @@ namespace WRTCServer
                 EMessageType.Wellcome => "welcome|Remotatec PS",
                 EMessageType.ConnectedUsers => $"connected_users|{string.Join(",", _connectedUsers)}",
                 EMessageType.Speaking => $"speaking|{args?[0]}",
-                EMessageType.SuccessFeedback => "ok",
-                EMessageType.ErrorFeedback => "nok",
+                EMessageType.SuccessFeedback => $"ok|{args[0]}",
+                EMessageType.ErrorFeedback => $"nok|{args[0]}",
                 _ => throw new NotImplementedException()
             };
         }
