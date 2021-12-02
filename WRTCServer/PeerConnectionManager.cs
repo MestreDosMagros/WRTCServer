@@ -12,8 +12,9 @@ namespace WRTCServer
 {
     public class PeerConnectionManager : IPeerConnectionManager
     {
-        private (bool, string) _speakFree;
+        private ushort _dtIndex;
         private object _lock = new() { };
+        private (bool, string) _speakFree;
         private readonly List<string> _connectedUsers;
         private readonly ILogger<PeerConnectionManager> _logger;
         private ConcurrentDictionary<string, List<RTCIceCandidate>> _candidates;
@@ -43,6 +44,7 @@ namespace WRTCServer
 
         public PeerConnectionManager(ILogger<PeerConnectionManager> logger)
         {
+            _dtIndex = 0;
             _logger = logger;
             _speakFree = (true, string.Empty);
             _connectedUsers ??= new List<string>();
@@ -162,6 +164,8 @@ namespace WRTCServer
                 };
 
                 var dataChannel = await peerConnection.createDataChannel("channel");
+
+                dataChannel.id = _dtIndex++;
 
                 dataChannel.onopen += () =>
                 {
