@@ -193,6 +193,7 @@ namespace WRTCServer
                         {
                             lock (_lock) _speakFree = true;
                             SendMessageToChannels(EMessageType.SuccessFeedback, new string[] { "speak_request_finish" });
+                            SendMessageToChannels(EMessageType.WhoWantsToSpeak);
                         }
 
                         if (msgType == EMessageType.SpeakRequestInit)
@@ -345,6 +346,7 @@ namespace WRTCServer
                 EMessageType.Wellcome => "welcome|Remotatec PS",
                 EMessageType.ConnectedUsers => $"connected_users|{string.Join(",", _connectedUsers)}",
                 EMessageType.Speaking => $"speaking|{args?[0]}",
+                EMessageType.WhoWantsToSpeak => $"who_wants_to_speak",
                 EMessageType.SuccessFeedback => $"ok|{args[0]}",
                 EMessageType.ErrorFeedback => $"nok|{args[0]}",
                 _ => throw new NotImplementedException()
@@ -361,6 +363,7 @@ namespace WRTCServer
         SpeakRequestFinish = 4,
         Speaking = 5,
         SuccessFeedback = 6,
-        ErrorFeedback = 7
+        ErrorFeedback = 7,
+        WhoWantsToSpeak = 8
     }
 }
