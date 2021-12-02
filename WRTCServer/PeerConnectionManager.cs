@@ -12,7 +12,7 @@ namespace WRTCServer
 {
     public class PeerConnectionManager : IPeerConnectionManager
     {
-        private bool _speakFree;
+        private (bool, string) _speakFree;
         private object _lock = new() { };
         private readonly List<string> _connectedUsers;
         private readonly ILogger<PeerConnectionManager> _logger;
@@ -44,7 +44,7 @@ namespace WRTCServer
         public PeerConnectionManager(ILogger<PeerConnectionManager> logger)
         {
             _logger = logger;
-            _speakFree = true;
+            _speakFree = (true, string.Empty);
             _connectedUsers ??= new List<string>();
             _candidates ??= new ConcurrentDictionary<string, List<RTCIceCandidate>>();
             _peerConnections ??= new ConcurrentDictionary<string, RTCPeerConnection>();
@@ -186,26 +186,38 @@ namespace WRTCServer
                         {
                             _connectedUsers.Add(msg);
                             dataChannel.send(GetDataChannelMessage(EMessageType.ConnectedUsers));
-                            if (_speakFree) dataChannel.send(GetDataChannelMessage(EMessageType.Speaking));
+                            if (_speakFree.Item1)
+                            {
+                                dataChannel.send(GetDataChannelMessage(EMessageType.Speaking, new string[] { _speakFree.Item2 }));
+                            }
                         }
 
                         if (msgType == EMessageType.SpeakRequestFinish)
                         {
-                            lock (_lock) _speakFree = true;
-                            SendMessageToChannels(EMessageType.SuccessFeedback, new string[] { "speak_request_finish" });
+                            lock (_lock)
+                            {
+                                _speakFree.Item1 = true;
+                                _speakFree.Item2 = string.Empty;
+                            }
+
+                            dataChannel.send(GetDataChannelMessage(EMessageType.SuccessFeedback, new string[] { "speak_request_finish" }));
                             SendMessageToChannels(EMessageType.WhoWantsToSpeak);
                         }
 
                         if (msgType == EMessageType.SpeakRequestInit)
                         {
-                            if (_speakFree)
+                            if (_speakFree.Item1)
                             {
-                                lock (_lock) _speakFree = false;
-                                SendMessageToChannels(EMessageType.SuccessFeedback, new string[] { "speak_request_init" });
-                                SendMessageToChannels(EMessageType.Speaking, new string[] { msg });
+                                lock (_lock)
+                                {
+                                    _speakFree.Item2 = msg;
+                                    _speakFree.Item1 = false;
+                                }
+                                dataChannel.send(GetDataChannelMessage(EMessageType.SuccessFeedback, new string[] { "speak_request_init" }));
+                                SendMessageToChannels(EMessageType.Speaking, new string[] { msg }, dataChannel.id);
                             }
                             else
-                                SendMessageToChannels(EMessageType.ErrorFeedback, new string[] { "speak_request_init" });
+                                dataChannel.send(GetDataChannelMessage(EMessageType.ErrorFeedback, new string[] { "speak_request_init" }));
                         }
                     }
                     catch
@@ -312,11 +324,17 @@ namespace WRTCServer
         /// <summary>
         ///     Sends a message via the open datachannel for all peers
         /// </summary>
-        private void SendMessageToChannels(EMessageType eMessageType, string[] args = null)
+        private void SendMessageToChannels(EMessageType eMessageType, string[] args = null, ushort? connToExclude = null)
         {
-            foreach (var conn in _peerConnections.Values)
+            if (!connToExclude.HasValue)
             {
-                conn.DataChannels[0]?.send(GetDataChannelMessage(eMessageType, args));
+                foreach (var conn in _peerConnections.Values.Where(x => x.DataChannels[0].id != connToExclude))
+                    conn.DataChannels[0]?.send(GetDataChannelMessage(eMessageType, args));
+            }
+            else
+            {
+                foreach (var conn in _peerConnections.Values)
+                    conn.DataChannels[0]?.send(GetDataChannelMessage(eMessageType, args));
             }
         }
 
