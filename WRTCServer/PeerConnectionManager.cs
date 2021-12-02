@@ -198,6 +198,12 @@ namespace WRTCServer
                             }
                         }
 
+                        if (msgType == EMessageType.Bye)
+                        {
+                            _connectedUsers.RemoveAll(u => u.Item2 == msg || u.Item1 == dataChannel.id);
+                            SendMessageToChannels(EMessageType.ConnectedUsers);
+                        }
+
                         if (msgType == EMessageType.SpeakRequestFinish)
                         {
                             lock (_lock)
@@ -350,6 +356,7 @@ namespace WRTCServer
                 "hello" => EMessageType.Hello,
                 "speak_request_init" => EMessageType.SpeakRequestInit,
                 "speak_request_finish" => EMessageType.SpeakRequestFinish,
+                "bye" => EMessageType.Bye,
                 _ => throw new NotImplementedException()
             };
             return (type, splited[1]);
@@ -383,6 +390,7 @@ namespace WRTCServer
         Speaking = 5,
         SuccessFeedback = 6,
         ErrorFeedback = 7,
-        WhoWantsToSpeak = 8
+        WhoWantsToSpeak = 8,
+        Bye = 9
     }
 }
