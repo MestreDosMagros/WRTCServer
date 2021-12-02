@@ -191,7 +191,7 @@ namespace WRTCServer
                         if (msgType == EMessageType.Hello)
                         {
                             _connectedUsers.Add((dataChannel.id.Value, msg));
-                            dataChannel.send(GetDataChannelMessage(EMessageType.ConnectedUsers));
+                            SendMessageToChannels(EMessageType.ConnectedUsers);
                             if (!_speakFree.Item1)
                             {
                                 dataChannel.send(GetDataChannelMessage(EMessageType.Speaking, new string[] { _speakFree.Item2 }));
