@@ -207,11 +207,14 @@ namespace WRTCServer
                     {
                         _logger.LogError("Invalid message received on data channel: {0}", dataChannel.label);
                     }
-                };               
+                };
 
-                var offerSdp = peerConnection.createOffer(null);
+                //var offerSdp = peerConnection.createOffer(null);
+                var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
+                //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("192.168.10.13"));
 
-                await peerConnection.setLocalDescription(offerSdp);
+                //await peerConnection.setLocalDescription(offerSdp);
+                await peerConnection.setLocalDescription(new RTCSessionDescriptionInit() { type = RTCSdpType.offer, sdp = sdp.ToString() });
 
                 _peerConnections.TryAdd(peerConnection.SessionID, peerConnection);
 
