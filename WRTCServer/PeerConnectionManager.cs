@@ -15,7 +15,7 @@ namespace WRTCServer
         private ushort _dtIndex;
         private object _lock = new() { };
         private (bool, string) _speakFree;
-        private readonly List<string> _connectedUsers;
+        private readonly List<(ushort, string)> _connectedUsers;
         private readonly ILogger<PeerConnectionManager> _logger;
         private ConcurrentDictionary<string, List<RTCIceCandidate>> _candidates;
         private ConcurrentDictionary<string, RTCPeerConnection> _peerConnections;
@@ -47,7 +47,7 @@ namespace WRTCServer
             _dtIndex = 0;
             _logger = logger;
             _speakFree = (true, string.Empty);
-            _connectedUsers ??= new List<string>();
+            _connectedUsers ??= new List<(ushort, string)>();
             _candidates ??= new ConcurrentDictionary<string, List<RTCIceCandidate>>();
             _peerConnections ??= new ConcurrentDictionary<string, RTCPeerConnection>();
         }
@@ -170,12 +170,14 @@ namespace WRTCServer
                 dataChannel.onopen += () =>
                 {
                     _logger.LogInformation("datachannel.onopen");
-                    dataChannel.send(GetDataChannelMessage(EMessageType.Wellcome));
+                    dataChannel.send(GetDataChannelMessage(EMessageType.Welcome));
                 };
 
                 dataChannel.onclose += () =>
                 {
                     _logger.LogInformation("datachannel.onclose");
+                    _connectedUsers.RemoveAll(c => c.Item1 == dataChannel.id.Value);
+                    SendMessageToChannels(EMessageType.ConnectedUsers);
                 };
 
                 dataChannel.onmessage += (datachan, type, data) =>
@@ -188,7 +190,7 @@ namespace WRTCServer
 
                         if (msgType == EMessageType.Hello)
                         {
-                            _connectedUsers.Add(msg);
+                            _connectedUsers.Add((dataChannel.id.Value, msg));
                             dataChannel.send(GetDataChannelMessage(EMessageType.ConnectedUsers));
                             if (!_speakFree.Item1)
                             {
@@ -231,12 +233,7 @@ namespace WRTCServer
                 };
 
                 var offerSdp = peerConnection.createOffer(null);
-
                 offerSdp.sdp = offerSdp.sdp.Replace("172.31.14.159", "18.228.196.245");
-                //offerSdp.sdp = offerSdp.sdp.Replace("192.168.10.13", "181.223.40.208");
-
-                //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
-                //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("192.168.10.13"));
 
                 await peerConnection.setLocalDescription(offerSdp);
 
@@ -365,8 +362,8 @@ namespace WRTCServer
         {
             return messageType switch
             {
-                EMessageType.Wellcome => "welcome|Remotatec PS",
-                EMessageType.ConnectedUsers => $"connected_users|{string.Join(",", _connectedUsers)}",
+                EMessageType.Welcome => "welcome|Remotatec PS",
+                EMessageType.ConnectedUsers => $"connected_users|{string.Join(",", _connectedUsers.Select(i => i.Item2))}",
                 EMessageType.Speaking => $"speaking|{args?[0]}",
                 EMessageType.WhoWantsToSpeak => $"who_wants_to_speak",
                 EMessageType.SuccessFeedback => $"ok|{args[0]}",
@@ -378,7 +375,7 @@ namespace WRTCServer
 
     public enum EMessageType
     {
-        Wellcome = 0,
+        Welcome = 0,
         Hello = 1,
         ConnectedUsers = 2,
         SpeakRequestInit = 3,
