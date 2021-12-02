@@ -200,7 +200,7 @@ namespace WRTCServer
 
                         if (msgType == EMessageType.Bye)
                         {
-                            _connectedUsers.RemoveAll(u => u.Item2 == msg || u.Item1 == dataChannel.id);
+                            _connectedUsers.RemoveAll(u => u.Item2 == msg);
                             SendMessageToChannels(EMessageType.ConnectedUsers);
                         }
 
