@@ -209,12 +209,16 @@ namespace WRTCServer
                     }
                 };
 
-                //var offerSdp = peerConnection.createOffer(null);
-                var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
+                var offerSdp = peerConnection.createOffer(null);
+
+                offerSdp.sdp = offerSdp.sdp.Replace("172.31.14.159", "18.228.196.245");
+                //offerSdp.sdp = offerSdp.sdp.Replace("192.168.10.13", "181.223.40.208");
+
+                //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("18.228.196.245"));
                 //var sdp = peerConnection.CreateOffer(System.Net.IPAddress.Parse("192.168.10.13"));
 
                 //await peerConnection.setLocalDescription(offerSdp);
-                await peerConnection.setLocalDescription(new RTCSessionDescriptionInit() { type = RTCSdpType.offer, sdp = sdp.ToString() });
+                await peerConnection.setLocalDescription(offerSdp);
 
                 _peerConnections.TryAdd(peerConnection.SessionID, peerConnection);
 
